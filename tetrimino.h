@@ -83,10 +83,15 @@ struct tetrimino
 void drawBlock(WINDOW *win, tetrimino block)
 {
 	wcolor_set(win,block.colorPair,0);
+	chtype ch;
 	for(int i = 0; i<block.lenCoord; i++)
 	{
-		mvwaddch(win, block.coord[i][0] + block.yPos, 2*block.coord[i][1] + block.xPos, ACS_CKBOARD);
-		mvwaddch(win, block.coord[i][0] + block.yPos, 2*block.coord[i][1] + block.xPos + 1, ACS_CKBOARD);
+		ch = mvwinch(win, block.coord[i][0] + block.yPos, 2*block.coord[i][1] + block.xPos);
+		if((static_cast<char>(ch) == ' ') && (block.coord[i][0] + block.yPos >= 1))
+		{
+			mvwaddch(win, block.coord[i][0] + block.yPos, 2*block.coord[i][1] + block.xPos, ACS_CKBOARD);
+			mvwaddch(win, block.coord[i][0] + block.yPos, 2*block.coord[i][1] + block.xPos + 1, ACS_CKBOARD);
+		}
 	}
 	wcolor_set(win,1,0);
 	wrefresh(win);
@@ -103,7 +108,8 @@ bool moveBlock(WINDOW *win, tetrimino *block, short diry, short dirx)
 	 */
 
 	for(int i=0; i<block->lenCoord; i++)  // remove current block position
-		mvwaddstr(win, block->coord[i][0] + block->yPos, 2*block->coord[i][1] + block->xPos, "  ");
+		if(block->coord[i][0] + block->yPos >= 1)
+			mvwaddstr(win, block->coord[i][0] + block->yPos, 2*block->coord[i][1] + block->xPos, "  ");
 	
 	bool next_free = true;
 	chtype next_ch;
@@ -124,6 +130,7 @@ bool moveBlock(WINDOW *win, tetrimino *block, short diry, short dirx)
 void rotateBlock(WINDOW *win, tetrimino *block, bool angle)  // angle: 0 (90°, rotate left), 1 (-90°, rotate right)
 {
 	for(int i=0; i<block->lenCoord; i++)  // remove current block position
+		if(block->coord[i][0] + block->yPos >= 1)
 			mvwaddstr(win, block->coord[i][0] + block->yPos, 2*block->coord[i][1] + block->xPos, "  ");
 	
 	// reverse y-x coordinates
