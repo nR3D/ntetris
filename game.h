@@ -44,13 +44,6 @@ tetrimino *get_next(BRG &generator)
     return next_block;
 }
 
-WINDOW *create_winbox(int h, int w, int starty, int startx)
-{
-    WINDOW *local_win = newwin(h, w, starty, startx);
-    box(local_win,0,0);
-    return local_win;
-}
-
 void update_score(WINDOW *win, unsigned long int score)
 {
     int len_score = 0;
