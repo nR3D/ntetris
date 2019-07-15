@@ -8,9 +8,13 @@
 #include "tetrimino.h"
 #endif
 
+#ifndef CHRONO
+#define CHORNO
+#include <chrono>
+#endif
+
 #include "game.h"
 #include <cmath>
-#include <chrono>
 
 using namespace std::chrono;
 
@@ -62,7 +66,7 @@ int main()
 
     bool flag = true;
     microseconds millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-    milliseconds speedLevel{999};
+    milliseconds speedLevel{500};
     BRG mainGenerator{};
     tetrimino *currentBlock = get_next(mainGenerator);
     timeout(0);  // no wait for getch()
@@ -91,8 +95,11 @@ int main()
 			case KEY_UP:
 				rotateBlock(mainWin, currentBlock, 1);
 				break;
+            case 'q':
+                flag = !pause_game(nextWin);
+                break;
 		}
-        if((duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - millStart) > speedLevel)
+        if(flag && (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - millStart) > speedLevel)
         {
             if(moveBlock(mainWin, currentBlock, 1, 0))
                 currentBlock = get_next(mainGenerator);
