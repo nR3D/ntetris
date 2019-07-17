@@ -52,6 +52,36 @@ tetrimino *get_next(BRG &generator)
     return next_block;
 }
 
+void check_rows(WINDOW *win)
+{
+    chtype current_ch;
+    bool single;
+    for(int row=0; row<20; row++)
+    {
+        single = true;
+        for(int c=0; c<10 && single; c++)
+        {
+            current_ch = mvwinch(win, 20-row, c*2);
+            if(static_cast<char>(current_ch) == ' ')
+                single = false;
+        }
+        if(single)
+        {
+            for(int r=row; r<20; r++)
+            {
+                for(int c=0; c<10; c++)
+                {
+                    current_ch = mvwinch(win, 19-r, c*2);
+                    mvwaddch(win, 20-r, 2*c, current_ch);
+                    mvwaddch(win, 20-r, 2*c+1, current_ch);
+                }
+            }
+            wrefresh(win);
+            row--;  // every line as been translated down by one position, so the current line must be checked again
+        }
+    }
+}
+
 void update_score(WINDOW *win, unsigned long int score)
 {
     int len_score = 0;

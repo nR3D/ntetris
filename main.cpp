@@ -102,7 +102,10 @@ int main()
         if(flag && (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - millStart) > speedLevel)
         {
             if(moveBlock(mainWin, currentBlock, 1, 0))
+            {
+                check_rows(mainWin);
                 currentBlock = get_next(mainGenerator);
+            }
             millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
         }
     }
