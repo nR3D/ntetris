@@ -20,6 +20,7 @@ using namespace std::chrono;
 
 WINDOW *create_winbox(int h, int w, int starty, int startx)
 {
+    // cannot use box() because a padding is needed
     WINDOW *local_win = newwin(h, w, starty, startx);
     mvhline(starty, startx, 0, w);
     mvvline(starty, startx-1, 0, h);
@@ -29,7 +30,8 @@ WINDOW *create_winbox(int h, int w, int starty, int startx)
     mvaddch(starty, startx+w, ACS_URCORNER);
     mvaddch(starty+h, startx-1, ACS_LLCORNER);
     mvaddch(starty+h, startx+w, ACS_LRCORNER);
-    //box(local_win,0,0);
+    wrefresh(local_win);
+    refresh();
     return local_win;
 }
 
@@ -46,29 +48,25 @@ int main()
     curs_set(0);  // cursor not visible
     refresh();
 
-    //WINDOW *mainWin = create_winbox(LINES - LINES/5, COLS/3,  LINES/10, COLS/6);
     WINDOW *mainWin = create_winbox(21, 20,  LINES/16, COLS/4);
     wrefresh(mainWin);
 
-    int temph, tempw;
+    WINDOW *nextWin = create_winbox(LINES/3, COLS/4, LINES/2.5, COLS - COLS/2);
 
     WINDOW *scoreWin = create_winbox(LINES/4, COLS/4, LINES/16, COLS - COLS/2);
-    wattron(scoreWin, COLOR_PAIR(1));
+    int temph, tempw;
     getmaxyx(scoreWin, temph, tempw);
     mvwprintw(scoreWin, 1, tempw/2 - 3, "Score:");
-    update_score(scoreWin, 99999);
+    unsigned long int scoreMatch = 0;
+    update_score(scoreWin, scoreMatch);
 
-    WINDOW *nextWin = create_winbox(LINES/3, COLS/4, LINES/2.5, COLS - COLS/2);
-    wattron(nextWin, COLOR_PAIR(1));
-    getmaxyx(nextWin, temph, tempw);
-    mvwprintw(nextWin, 1, tempw/2 - 2, "Next");
-    wrefresh(nextWin);
-
-    bool flag = true;
+    
+    bool flag = true, frameShift = true;
     microseconds millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
     milliseconds speedLevel{500};
     BRG mainGenerator{};
     tetrimino *currentBlock = get_next(mainGenerator);
+    print_next(nextWin, &mainGenerator);
     timeout(0);  // no wait for getch()
     while(flag)
     {
@@ -88,6 +86,11 @@ int main()
 				break;
 			case ' ':
 				while(!moveBlock(mainWin, currentBlock, 1, 0));
+                if(frameShift)  // makes sure to avoid spamming of space_key to have infinite time before next piece is drop
+                {
+                    millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) + milliseconds{500} - speedLevel;
+                    frameShift = false;
+                }
 				break;
 			case 'z':
 				rotateBlock(mainWin, currentBlock, 0);
@@ -97,18 +100,42 @@ int main()
 				break;
             case 'q':
                 flag = !pause_game(nextWin);
+                print_next(nextWin, &mainGenerator);
                 break;
 		}
         if(flag && (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - millStart) > speedLevel)
         {
             if(moveBlock(mainWin, currentBlock, 1, 0))
             {
-                check_rows(mainWin);
+                scoreMatch += 100*check_rows(mainWin);
+                update_score(scoreWin, scoreMatch);
                 currentBlock = get_next(mainGenerator);
+                if(moveBlock(mainWin, currentBlock, 1, 0, true))  // if next tetrimino cannot be placed then end game
+                    flag = false;
+                else
+                {
+                    print_next(nextWin, &mainGenerator);
+                    millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+                    frameShift = true;
+                }
             }
-            millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+            else if(moveBlock(mainWin, currentBlock, 1, 0, true))  // simulate movement to check if the next down translation will also be impossible
+                millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) + milliseconds{500} - speedLevel;
+            else
+            {
+                millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+                frameShift = true;
+            }
         }
     }
+
+    wmove(mainWin, 1, 0);
+    wclrtobot(mainWin);
+    getmaxyx(mainWin, temph, tempw);
+    mvwaddstr(mainWin, temph/2, tempw/2 - 5, "Game  Over");
+    wrefresh(mainWin);
+    timeout(-1);
+    getch();
     
     delwin(mainWin);
     delwin(scoreWin);

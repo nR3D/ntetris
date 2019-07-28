@@ -52,9 +52,11 @@ tetrimino *get_next(BRG &generator)
     return next_block;
 }
 
-void check_rows(WINDOW *win)
+int check_rows(WINDOW *win)
 {
+    /* Remove completed rows and return the number or rows removed */
     chtype current_ch;
+    int rowsRemoved = 0;
     bool single;
     for(int row=0; row<20; row++)
     {
@@ -77,9 +79,11 @@ void check_rows(WINDOW *win)
                 }
             }
             wrefresh(win);
-            row--;  // every line as been translated down by one position, so the current line must be checked again
+            rowsRemoved++;
+            row--;  // each line as been translated down by one position, so the current line must be checked again
         }
     }
+    return rowsRemoved;
 }
 
 void update_score(WINDOW *win, unsigned long int score)
@@ -137,18 +141,32 @@ bool pause_game(WINDOW *win)
         }
         else if(ch == 10)  // KEY_ENTER
         {
-            timeout(0);  // restore getch() wait time to 0
             if(!arrow_position)
                 count_down(win);
             flag = false;
         }
         else if(ch == 'q')
         {
-            timeout(0);
             count_down(win);
             arrow_position = false;
             flag = false;
         }
     }
+    timeout(0);  // restore getch() wait time to 0
     return arrow_position;
+}
+
+void print_next(WINDOW *win, BRG *generator)
+{
+    // The next tetrimino in *generator will be printed at the centre of *win
+    int h, w;
+    getmaxyx(win, h, w);
+    tetrimino *next_tetr = new tetrimino(generator->bag[generator->lenBag-1]->shape, h/2, w/2 - 2);
+
+    wmove(win, 1, 0);
+    wclrtobot(win);  // erase previous tetrimino
+    
+    mvwaddstr(win, 1, w/2 - 2, "Next");
+    drawBlock(win, next_tetr);
+    wrefresh(win);
 }

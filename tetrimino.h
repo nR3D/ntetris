@@ -80,24 +80,24 @@ struct tetrimino
 	}
 };
 
-void drawBlock(WINDOW *win, tetrimino block)
+void drawBlock(WINDOW *win, tetrimino *block)
 {
-	wcolor_set(win,block.colorPair,0);
+	wcolor_set(win,block->colorPair,0);
 	chtype ch;
-	for(int i = 0; i<block.lenCoord; i++)
+	for(int i = 0; i<block->lenCoord; i++)
 	{
-		ch = mvwinch(win, block.coord[i][0] + block.yPos, 2*block.coord[i][1] + block.xPos);
-		if((static_cast<char>(ch) == ' ') && (block.coord[i][0] + block.yPos >= 1))
+		ch = mvwinch(win, block->coord[i][0] + block->yPos, 2*block->coord[i][1] + block->xPos);
+		if((static_cast<char>(ch) == ' ') && (block->coord[i][0] + block->yPos >= 1))
 		{
-			mvwaddch(win, block.coord[i][0] + block.yPos, 2*block.coord[i][1] + block.xPos, ACS_CKBOARD);
-			mvwaddch(win, block.coord[i][0] + block.yPos, 2*block.coord[i][1] + block.xPos + 1, ACS_CKBOARD);
+			mvwaddch(win, block->coord[i][0] + block->yPos, 2*block->coord[i][1] + block->xPos, ACS_CKBOARD);
+			mvwaddch(win, block->coord[i][0] + block->yPos, 2*block->coord[i][1] + block->xPos + 1, ACS_CKBOARD);
 		}
 	}
 	wcolor_set(win,1,0);
 	wrefresh(win);
 }
 
-bool moveBlock(WINDOW *win, tetrimino *block, short diry, short dirx)
+bool moveBlock(WINDOW *win, tetrimino *block, short diry, short dirx, bool simulate_movement=false)
 {
 	/* Move tetrimino by (diry, dirx) positions, dirx: -1 left and 1 right, diry: -1 up and 1 down.
 	 * It's meant to be a small movement in a 10x20 grid, that's why the variables are short and not int,
@@ -118,12 +118,12 @@ bool moveBlock(WINDOW *win, tetrimino *block, short diry, short dirx)
 		next_ch = mvwinch(win, block->coord[i][0] + block->yPos + diry, 2*block->coord[i][1] + block->xPos + 2*dirx);
 		next_free = next_free && static_cast<char>(next_ch) == ' ';
 	}
-	if(next_free)  // if new position is free then translate the block and draw it, otherwise draw the previous position
+	if(next_free && !simulate_movement)  // if new position is free then translate the block and draw it, otherwise draw the previous position
 	{
 		block->yPos += diry;
 		block->xPos += 2*dirx;
 	}
-	drawBlock(win, *block);
+	drawBlock(win, block);
 	return !next_free;
 }
 
@@ -168,6 +168,5 @@ void rotateBlock(WINDOW *win, tetrimino *block, bool angle)  // angle: 0 (90°, 
 		}
 	}
 	
-	drawBlock(win, *block);
+	drawBlock(win, block);
 }
-
