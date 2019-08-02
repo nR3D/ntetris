@@ -13,6 +13,8 @@
 #include <chrono>
 #endif
 
+using namespace std::chrono;
+
 #include <thread>
 #include <random>
 
@@ -43,14 +45,41 @@ struct BRG  // Bag Random Generator
     }
 };
 
-tetrimino *get_next(BRG &generator)
+tetrimino *get_next(BRG *generator)
 {
-    tetrimino *next_block = generator.bag[generator.lenBag-1];
-    generator.lenBag--;
-    if(!generator.lenBag)
-        generator = BRG();
+    tetrimino *next_block = generator->bag[generator->lenBag-1];
+    generator->lenBag--;
+    if(!generator->lenBag)
+    {
+        delete generator;
+        generator = new BRG();
+    }
     return next_block;
 }
+
+struct Game
+{
+    BRG *generator;
+    bool continueGame;  // match ends when continueGame is false
+    bool frameShift;  /* give more time when a tetrimino touched the end of a column,
+                       * if true that extra time can be used again */
+    bool holdTurn;  // indicates if a tetrimino can be hold in this turn
+    tetrimino *currentBlock;
+    milliseconds millStart;  // millsec from which start to count the speed of fall
+    milliseconds speedLevel;  // speed of fall
+
+    Game()
+    {
+        generator = new BRG();
+        continueGame = true;
+        frameShift = true;
+        holdTurn = true;
+        currentBlock = get_next(generator);
+        millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+        speedLevel = milliseconds(500);
+    }
+
+};
 
 int check_rows(WINDOW *win)
 {
@@ -139,7 +168,7 @@ bool pause_game(WINDOW *win)
             mvwaddch(win, h/2+arrow_position, w/2-5, '>');
             wrefresh(win);
         }
-        else if(ch == 10)  // KEY_ENTER
+        else if(ch == 10 || ch == ' ')  // KEY_ENTER or KEY_SPACE to confirm current selection
         {
             if(!arrow_position)
                 count_down(win);
@@ -169,4 +198,6 @@ void print_next(WINDOW *win, BRG *generator)
     mvwaddstr(win, 1, w/2 - 2, "Next");
     drawBlock(win, next_tetr);
     wrefresh(win);
+
+    delete next_tetr;  // avoid memory leak
 }

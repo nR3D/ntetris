@@ -61,70 +61,66 @@ int main()
     update_score(scoreWin, scoreMatch);
 
     
-    bool flag = true, frameShift = true;
-    microseconds millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-    milliseconds speedLevel{500};
-    BRG mainGenerator{};
-    tetrimino *currentBlock = get_next(mainGenerator);
-    print_next(nextWin, &mainGenerator);
+    Game currentGame{};
+    print_next(nextWin, currentGame.generator);
     timeout(0);  // no wait for getch()
-    while(flag)
+    while(currentGame.continueGame)
     {
         switch(getch())
 		{
 			case KEY_F(1):
-				flag = false;
+				currentGame.continueGame = false;
 				break;
 			case KEY_LEFT:
-				moveBlock(mainWin, currentBlock, 0, -1);
+				moveBlock(mainWin, currentGame.currentBlock, 0, -1);
 				break;
 			case KEY_RIGHT:
-				moveBlock(mainWin, currentBlock, 0, 1);
+				moveBlock(mainWin, currentGame.currentBlock, 0, 1);
 				break;
 			case KEY_DOWN:
-				moveBlock(mainWin, currentBlock, 1, 0);
+				moveBlock(mainWin, currentGame.currentBlock, 1, 0);
 				break;
 			case ' ':
-				while(!moveBlock(mainWin, currentBlock, 1, 0));
-                if(frameShift)  // makes sure to avoid spamming of space_key to have infinite time before next piece is drop
+				while(!moveBlock(mainWin, currentGame.currentBlock, 1, 0));
+                if(currentGame.frameShift)  // makes sure to avoid spamming of space_key to have infinite time before next piece is drop
                 {
-                    millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) + milliseconds{500} - speedLevel;
-                    frameShift = false;
+                    currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) + milliseconds{500} - currentGame.speedLevel;
+                    currentGame.frameShift = false;
                 }
 				break;
 			case 'z':
-				rotateBlock(mainWin, currentBlock, 0);
+				rotateBlock(mainWin, currentGame.currentBlock, 0);
 				break;
 			case KEY_UP:
-				rotateBlock(mainWin, currentBlock, 1);
+				rotateBlock(mainWin, currentGame.currentBlock, 1);
 				break;
             case 'q':
-                flag = !pause_game(nextWin);
-                print_next(nextWin, &mainGenerator);
+                currentGame.continueGame = !pause_game(nextWin);
+                print_next(nextWin, currentGame.generator);
                 break;
 		}
-        if(flag && (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - millStart) > speedLevel)
+        if(currentGame.continueGame && (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - currentGame.millStart) > currentGame.speedLevel)
         {
-            if(moveBlock(mainWin, currentBlock, 1, 0))
+            if(moveBlock(mainWin, currentGame.currentBlock, 1, 0))
             {
                 scoreMatch += 100*check_rows(mainWin);
                 update_score(scoreWin, scoreMatch);
-                currentBlock = get_next(mainGenerator);
-                if(moveBlock(mainWin, currentBlock, 1, 0, true))  // if next tetrimino cannot be placed then end game
-                    flag = false;
+                currentGame.currentBlock = get_next(currentGame.generator);
+                if(moveBlock(mainWin, currentGame.currentBlock, 1, 0, true))  // if next tetrimino cannot be placed then end game
+                    currentGame.continueGame = false;
                 else
                 {
-                    print_next(nextWin, &mainGenerator);
-                    millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-                    frameShift = true;
+                    print_next(nextWin, currentGame.generator);
+                    currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+                    currentGame.frameShift = true;
                 }
             }
-            else if(moveBlock(mainWin, currentBlock, 1, 0, true))  // simulate movement to check if the next down translation will also be impossible
-                millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) + milliseconds{500} - speedLevel;
+            else if(moveBlock(mainWin, currentGame.currentBlock, 1, 0, true))  // simulate movement to check if the next down translation will also be impossible
+                currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) + milliseconds{500} - currentGame.speedLevel;
             else
             {
-                millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-                frameShift = true;
+                currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+                currentGame.frameShift = true;
             }
         }
     }
