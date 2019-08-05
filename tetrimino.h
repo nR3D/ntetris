@@ -84,10 +84,10 @@ void drawBlock(WINDOW *win, tetrimino *block)
 {
 	wcolor_set(win,block->colorPair,0);
 	chtype ch;
-	for(int i = 0; i<block->lenCoord; i++)
+	for(int i = 0; i < block->lenCoord; i++)
 	{
 		ch = mvwinch(win, block->coord[i][0] + block->yPos, 2*block->coord[i][1] + block->xPos);
-		if((static_cast<char>(ch) == ' ') && (block->coord[i][0] + block->yPos >= 1))
+		if((static_cast<char>(ch) == ' ') && (block->coord[i][0] + block->yPos > 0))
 		{
 			mvwaddch(win, block->coord[i][0] + block->yPos, 2*block->coord[i][1] + block->xPos, ACS_CKBOARD);
 			mvwaddch(win, block->coord[i][0] + block->yPos, 2*block->coord[i][1] + block->xPos + 1, ACS_CKBOARD);
@@ -101,24 +101,28 @@ bool moveBlock(WINDOW *win, tetrimino *block, short diry, short dirx, bool simul
 {
 	/* Move tetrimino by (diry, dirx) positions, dirx: -1 left and 1 right, diry: -1 up and 1 down.
 	 * It's meant to be a small movement in a 10x20 grid, that's why the variables are short and not int,
-	 * but changing them to ints, if needed, shouldn't break the code, by the way keep in mind that
+	 * but changing them to ints, if needed, shouldn't break the code, anyway keep in mind that
 	 * move() functions are defined with integers and so larger types should not be used.
 	 *
 	 * Return TRUE if there wasn't enough space to move, otherwise FALSE
 	 */
 
-	for(int i=0; i<block->lenCoord; i++)  // remove current block position
-		if(block->coord[i][0] + block->yPos >= 1)
+	for(int i=0; i < block->lenCoord; i++)  // remove current block position
+		if(block->coord[i][0] + block->yPos > 0)
 			mvwaddstr(win, block->coord[i][0] + block->yPos, 2*block->coord[i][1] + block->xPos, "  ");
 	
 	bool next_free = true;
 	chtype next_ch;
-	for(int i=0; i<block->lenCoord; i++)  // check if the new position can be drawn without overlaps with other blocks
+	for(int i=0; i < block->lenCoord; i++)  // check if the new position can be drawn without overlaps with other blocks
 	{
-		next_ch = mvwinch(win, block->coord[i][0] + block->yPos + diry, 2*block->coord[i][1] + block->xPos + 2*dirx);
-		next_free = next_free && static_cast<char>(next_ch) == ' ';
+		if(block->coord[i][0] + block->yPos + diry > 0)
+		{
+			next_ch = mvwinch(win, block->coord[i][0] + block->yPos + diry, 2*block->coord[i][1] + block->xPos + 2*dirx);
+			next_free = next_free && static_cast<char>(next_ch) == ' ';
+		}
 	}
-	if(next_free && !simulate_movement)  // if new position is free then translate the block and draw it, otherwise draw the previous position
+	if(next_free && !simulate_movement)  /* if new position is free and it's not a simulation then translate
+										  * the block and draw it, otherwise draw the previous position */
 	{
 		block->yPos += diry;
 		block->xPos += 2*dirx;
@@ -155,7 +159,7 @@ void rotateBlock(WINDOW *win, tetrimino *block, bool angle)  // angle: 0 (90°, 
 		block_free = block_free && static_cast<char>(ch) == ' ';
 	}
 	
-	if(!block_free)  // reverse rotation if there is not space
+	if(!block_free)  // reverse rotation if there is not enough space
 	{
 		for(int i=0; i < block->lenCoord; i++) // reverse flip
 			block->coord[i][angle] = block->pivot - block->coord[i][angle];

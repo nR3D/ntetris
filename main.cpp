@@ -82,10 +82,10 @@ int main()
 				break;
 			case ' ':
 				while(!moveBlock(mainWin, currentGame.currentBlock, 1, 0));
-                if(currentGame.frameShift)  // makes sure to avoid spamming of space_key to have infinite time before next piece is drop
+                if(currentGame.shiftFrame)  // makes sure to avoid spamming of space_key to have infinite time before next piece is drop
                 {
                     currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) + milliseconds{500} - currentGame.speedLevel;
-                    currentGame.frameShift = false;
+                    currentGame.shiftFrame = false;
                 }
 				break;
 			case 'z':
@@ -103,16 +103,16 @@ int main()
         {
             if(moveBlock(mainWin, currentGame.currentBlock, 1, 0))
             {
-                scoreMatch += 100*check_rows(mainWin);
-                update_score(scoreWin, scoreMatch);
-                currentGame.currentBlock = get_next(currentGame.generator);
-                if(moveBlock(mainWin, currentGame.currentBlock, 1, 0, true))  // if next tetrimino cannot be placed then end game
+                if(currentGame.currentBlock->yPos < 1)  // if tetrimino is blocked before entering the grid then end game
                     currentGame.continueGame = false;
                 else
                 {
+                    scoreMatch += 100*check_rows(mainWin);
+                    update_score(scoreWin, scoreMatch);
+                    currentGame.currentBlock = get_next(currentGame.generator);
                     print_next(nextWin, currentGame.generator);
                     currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-                    currentGame.frameShift = true;
+                    currentGame.shiftFrame = true;
                 }
             }
             else if(moveBlock(mainWin, currentGame.currentBlock, 1, 0, true))  // simulate movement to check if the next down translation will also be impossible
@@ -120,7 +120,7 @@ int main()
             else
             {
                 currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-                currentGame.frameShift = true;
+                currentGame.shiftFrame = true;
             }
         }
     }

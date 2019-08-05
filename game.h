@@ -36,11 +36,13 @@ struct BRG  // Bag Random Generator
             if(rand_i != 6-i)
                 name_tetr[rand_i] = name_tetr[6-i];
             unsigned short spawnx = 0;
-            if(rand_ch == 'I' || rand_ch == 'O')
-                spawnx = 8;  // tetrimino 'I' and 'O' spawn in the middle columns
-            if(spawnx%2)
-                spawnx /= 2; // spawn location must be a multiple of 2, otherwise tetrimino will overflow on the right corner
-            bag[i] = new tetrimino(rand_ch, 0, spawnx);
+            if(rand_ch == 'O')  // tetrimino 'I' and 'O' spawn in the middle columns
+                spawnx = 8;
+            else if(rand_ch == 'I')
+                spawnx = 6;
+            if(spawnx%2)  // spawn location must be a multiple of 2, otherwise tetrimino will overflow on the right corner
+                spawnx -= 1;  // useful check for custom tetriminos
+            bag[i] = new tetrimino(rand_ch, -1, spawnx);
         }
     }
 };
@@ -61,10 +63,11 @@ struct Game
 {
     BRG *generator;
     bool continueGame;  // match ends when continueGame is false
-    bool frameShift;  /* give more time when a tetrimino touched the end of a column,
+    bool shiftFrame;  /* give more time when a tetrimino touched the end of a column,
                        * if true that extra time can be used again */
     bool holdTurn;  // indicates if a tetrimino can be hold in this turn
     tetrimino *currentBlock;
+    
     milliseconds millStart;  // millsec from which start to count the speed of fall
     milliseconds speedLevel;  // speed of fall
 
@@ -72,7 +75,7 @@ struct Game
     {
         generator = new BRG();
         continueGame = true;
-        frameShift = true;
+        shiftFrame = true;
         holdTurn = true;
         currentBlock = get_next(generator);
         millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
@@ -104,6 +107,7 @@ int check_rows(WINDOW *win)
                 {
                     current_ch = mvwinch(win, 19-r, c*2);
                     mvwaddch(win, 20-r, 2*c, current_ch);
+                    current_ch = mvwinch(win, 19-r, 2*c+1);  // in case the second character used is not the same of the first (e.g. '[' and ']')
                     mvwaddch(win, 20-r, 2*c+1, current_ch);
                 }
             }
