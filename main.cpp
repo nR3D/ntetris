@@ -53,6 +53,8 @@ int main()
 
     WINDOW *nextWin = create_winbox(LINES/3, COLS/4, LINES/2.5, COLS - COLS/2);
 
+    WINDOW *holdWin = create_winbox(LINES/3, COLS/6, 5, 5);
+
     WINDOW *scoreWin = create_winbox(LINES/4, COLS/4, LINES/16, COLS - COLS/2);
     int temph, tempw;
     getmaxyx(scoreWin, temph, tempw);
@@ -72,10 +74,12 @@ int main()
 				currentGame.continueGame = false;
 				break;
 			case KEY_LEFT:
-				moveBlock(mainWin, currentGame.currentBlock, 0, -1);
+                if(currentGame.currentBlock->xPos > 1 || currentGame.currentBlock->yPos > 0)
+				    moveBlock(mainWin, currentGame.currentBlock, 0, -1);
 				break;
 			case KEY_RIGHT:
-				moveBlock(mainWin, currentGame.currentBlock, 0, 1);
+                if(currentGame.currentBlock->xPos + 2*currentGame.currentBlock->pivot < 18 || currentGame.currentBlock->yPos > 0)
+				    moveBlock(mainWin, currentGame.currentBlock, 0, 1);
 				break;
 			case KEY_DOWN:
 				moveBlock(mainWin, currentGame.currentBlock, 1, 0);
@@ -94,6 +98,26 @@ int main()
 			case KEY_UP:
 				rotateBlock(mainWin, currentGame.currentBlock, 1);
 				break;
+            case 'h':
+                if(currentGame.holdTurn)
+                {
+                    currentGame.holdTurn = false;
+                    char hold_ch = currentGame.holdCh;
+                    currentGame.holdCh = currentGame.currentBlock->shape;
+                    erase_tetrimino(mainWin, currentGame.currentBlock, true);  // erase tetrimino and refresh mainWin
+                    if(hold_ch)
+                        currentGame.currentBlock = spawn_tetrimino(hold_ch);
+                    else
+                        currentGame.currentBlock = get_next(currentGame.generator);
+
+                    if(currentGame.holdCh)
+                        print_hold(holdWin, currentGame.holdCh);
+                    
+                    print_next(nextWin, currentGame.generator);
+                    currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+                    currentGame.shiftFrame = true;
+                }
+                break;
             case 'q':
                 currentGame.continueGame = !pause_game(nextWin);
                 print_next(nextWin, currentGame.generator);
@@ -113,6 +137,7 @@ int main()
                     print_next(nextWin, currentGame.generator);
                     currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
                     currentGame.shiftFrame = true;
+                    currentGame.holdTurn = true;
                 }
             }
             else if(moveBlock(mainWin, currentGame.currentBlock, 1, 0, true))  // simulate movement to check if the next down translation will also be impossible

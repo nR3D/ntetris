@@ -35,14 +35,7 @@ struct BRG  // Bag Random Generator
             char rand_ch = name_tetr[rand_i];
             if(rand_i != 6-i)
                 name_tetr[rand_i] = name_tetr[6-i];
-            unsigned short spawnx = 0;
-            if(rand_ch == 'O')  // tetrimino 'I' and 'O' spawn in the middle columns
-                spawnx = 8;
-            else if(rand_ch == 'I')
-                spawnx = 6;
-            if(spawnx%2)  // spawn location must be a multiple of 2, otherwise tetrimino will overflow on the right corner
-                spawnx -= 1;  // useful check for custom tetriminos
-            bag[i] = new tetrimino(rand_ch, -1, spawnx);
+            bag[i] = spawn_tetrimino(rand_ch);
         }
     }
 };
@@ -67,7 +60,7 @@ struct Game
                        * if true that extra time can be used again */
     bool holdTurn;  // indicates if a tetrimino can be hold in this turn
     tetrimino *currentBlock;
-    
+    char holdCh;  // char shape of the holded tetrimino
     milliseconds millStart;  // millsec from which start to count the speed of fall
     milliseconds speedLevel;  // speed of fall
 
@@ -77,6 +70,7 @@ struct Game
         continueGame = true;
         shiftFrame = true;
         holdTurn = true;
+        holdCh = '\0';
         currentBlock = get_next(generator);
         millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
         speedLevel = milliseconds(500);
@@ -204,4 +198,19 @@ void print_next(WINDOW *win, BRG *generator)
     wrefresh(win);
 
     delete next_tetr;  // avoid memory leak
+}
+
+void print_hold(WINDOW *win, char hold_ch)
+{
+    int h, w;
+    getmaxyx(win, h, w);
+    tetrimino *hold_tetr = new tetrimino(hold_ch, h/2, w/2 - 2);
+
+    wmove(win, 1, 0);
+    wclrtobot(win);  // erase previous tetrimino
+
+    drawBlock(win, hold_tetr);
+    wrefresh(win);
+
+    delete hold_tetr;
 }

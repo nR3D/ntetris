@@ -26,7 +26,6 @@ struct tetrimino
 			    lenCoord = 4;
 			    init_pair(2, COLOR_CYAN, bgcolor);
 			    colorPair = 2;
-				pivot = 3;
 			    break;
 			case 'L':
 				coord = new int[4][2]{{1,0},{1,1},{1,2},{0,2}};
@@ -39,46 +38,67 @@ struct tetrimino
 				else
 					init_pair(3, COLOR_WHITE, bgcolor);
 				colorPair = 3;
-				pivot = 2;
 				break;
 			case 'J':
 				coord = new int[4][2]{{0,0},{1,0},{1,1},{1,2}};
 				lenCoord = 4;
 				init_pair(4, COLOR_BLUE, bgcolor);
 				colorPair = 4;
-				pivot = 2;
 				break;
 			case 'O':
 				coord = new int[4][2]{{0,0},{0,1},{1,0},{1,1}};
 				lenCoord = 4;
 				init_pair(5, COLOR_YELLOW, bgcolor);
 				colorPair = 5;
-				pivot = 1;
 				break;
 			case 'S':
 				coord = new int[4][2]{{0,1},{0,2},{1,0},{1,1}};
 				lenCoord = 4;
 				init_pair(6, COLOR_GREEN, bgcolor);
 				colorPair = 6;
-				pivot = 2;
 				break;
 			case 'Z':
 				coord = new int[4][2]{{0,0},{0,1},{1,1},{1,2}};
 				lenCoord = 4;
 				init_pair(7, COLOR_RED, bgcolor);
 				colorPair = 7;
-				pivot = 2;
 				break;
 			case 'T':
 				coord = new int[4][2]{{1,0},{1,1},{1,2},{0,1}};
 				lenCoord = 4;
 				init_pair(8, COLOR_MAGENTA, bgcolor);
 				colorPair = 8;
-				pivot = 2;
 				break;
 		}
+		
+		for(int i = 0; i < lenCoord; i++)
+			if(coord[i][1] > pivot)
+				pivot = coord[i][1];
 	}
 };
+
+tetrimino *spawn_tetrimino(char c)
+{
+	unsigned short spawnx = 0;
+	if(c == 'O')  // tetrimino 'I' and 'O' spawn in the middle columns
+		spawnx = 8;
+	else if(c == 'I')
+		spawnx = 6;
+	if(spawnx%2)  // spawn location must be a multiple of 2, otherwise tetrimino will overflow on the right corner
+		spawnx -= 1;  // useful check for custom tetriminos
+	return new tetrimino(c, -1, spawnx);
+}
+
+void erase_tetrimino(WINDOW *win, tetrimino *block, bool refresh=false)
+{
+	// erase tetrimino frome win screen
+	for(int i=0; i < block->lenCoord; i++)
+		if(block->coord[i][0] + block->yPos > 0)
+			mvwaddstr(win, block->coord[i][0] + block->yPos, 2*block->coord[i][1] + block->xPos, "  ");
+	
+	if(refresh)
+		wrefresh(win);
+}
 
 void drawBlock(WINDOW *win, tetrimino *block)
 {
@@ -107,13 +127,11 @@ bool moveBlock(WINDOW *win, tetrimino *block, short diry, short dirx, bool simul
 	 * Return TRUE if there wasn't enough space to move, otherwise FALSE
 	 */
 
-	for(int i=0; i < block->lenCoord; i++)  // remove current block position
-		if(block->coord[i][0] + block->yPos > 0)
-			mvwaddstr(win, block->coord[i][0] + block->yPos, 2*block->coord[i][1] + block->xPos, "  ");
+	erase_tetrimino(win, block);  // erase tetrimino from screen
 	
 	bool next_free = true;
 	chtype next_ch;
-	for(int i=0; i < block->lenCoord; i++)  // check if the new position can be drawn without overlaps with other blocks
+	for(int i=0; i < block->lenCoord && next_free; i++)  // check if the new position can be drawn without overlaps with other blocks
 	{
 		if(block->coord[i][0] + block->yPos + diry > 0)
 		{
@@ -133,9 +151,7 @@ bool moveBlock(WINDOW *win, tetrimino *block, short diry, short dirx, bool simul
 
 void rotateBlock(WINDOW *win, tetrimino *block, bool angle)  // angle: 0 (90°, rotate left), 1 (-90°, rotate right)
 {
-	for(int i=0; i<block->lenCoord; i++)  // remove current block position
-		if(block->coord[i][0] + block->yPos >= 1)
-			mvwaddstr(win, block->coord[i][0] + block->yPos, 2*block->coord[i][1] + block->xPos, "  ");
+	erase_tetrimino(win, block);  // erase tetrimino from screen
 	
 	// reverse y-x coordinates
 	int temp;
