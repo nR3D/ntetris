@@ -179,16 +179,14 @@ void update_info(WINDOW *win, unsigned long int score, short level)
     int len_score = 1;
     while(score/pow(10,len_score) > 1)
         len_score++;
-    if(!len_score%2)
-        len_score++;
     int h, w;
     getmaxyx(win, h, w);
     wmove(win, h/3, 0);
     wclrtoeol(win);  // remove previous score
-    mvwprintw(win, h/3, w/2 - len_score/2, "%d", score);
+    mvwprintw(win, h/3, w/2 - len_score/2 - 1, "%d", score);
     wmove(win, h/2 + 2, 0);
     wclrtoeol(win);  // remove previous level
-    mvwprintw(win, h/2 + 2, w/2, "%d", level);
+    mvwprintw(win, h/2 + 2, w/2 - 1, "%d", level);
     wrefresh(win);
 }
 

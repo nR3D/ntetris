@@ -48,21 +48,29 @@ int main()
     curs_set(0);  // cursor not visible
     refresh();
 
-    WINDOW *mainWin = create_winbox(21, 20,  LINES/16, COLS/3);
+    while(LINES < 23 || COLS < 37)
+    {
+        mvaddstr(LINES/2, COLS/2 - 11, "Please resize terminal");
+        refresh();
+        getmaxyx(stdscr, LINES, COLS);
+        erase();
+    }
+
+    WINDOW *mainWin = create_winbox(21, 20,  1, COLS/2 - 18);
     wrefresh(mainWin);
 
-    WINDOW *scoreWin = create_winbox(LINES/3.3, COLS/6, LINES/16, COLS - COLS/2);
+    WINDOW *scoreWin = create_winbox(7, 14, 1, COLS/2 + 4);
     int temph, tempw;
     getmaxyx(scoreWin, temph, tempw);
-    mvwprintw(scoreWin, 1, tempw/2 - 2, "Score:");
-    mvwprintw(scoreWin, temph/2 + 1, tempw/2 - 2, "Level:");
+    mvwprintw(scoreWin, 1, tempw/2 - 3, "Score:");
+    mvwprintw(scoreWin, temph/2 + 1, tempw/2 - 3, "Level:");
 
-    WINDOW *holdWin = create_winbox(LINES/4, COLS/6, LINES/2.5, COLS - COLS/2);
+    WINDOW *holdWin = create_winbox(6, 14, 9, COLS/2 + 4);
     getmaxyx(holdWin, temph, tempw);
     mvwprintw(holdWin, 1, tempw/2 - 2, "Hold");
     wrefresh(holdWin);
 
-    WINDOW *nextWin = create_winbox(LINES/4, COLS/6, LINES/1.5, COLS - COLS/2);
+    WINDOW *nextWin = create_winbox(6, 14, 16, COLS/2 + 4);
 
     
     Game currentGame{};
