@@ -48,23 +48,26 @@ int main()
     curs_set(0);  // cursor not visible
     refresh();
 
-    WINDOW *mainWin = create_winbox(21, 20,  LINES/16, COLS/4);
+    WINDOW *mainWin = create_winbox(21, 20,  LINES/16, COLS/3);
     wrefresh(mainWin);
 
-    WINDOW *nextWin = create_winbox(LINES/3, COLS/4, LINES/2.5, COLS - COLS/2);
-
-    WINDOW *holdWin = create_winbox(LINES/3, COLS/6, 5, 5);
-
-    WINDOW *scoreWin = create_winbox(LINES/4, COLS/4, LINES/16, COLS - COLS/2);
+    WINDOW *scoreWin = create_winbox(LINES/3.3, COLS/6, LINES/16, COLS - COLS/2);
     int temph, tempw;
     getmaxyx(scoreWin, temph, tempw);
-    mvwprintw(scoreWin, 1, tempw/2 - 3, "Score:");
-    unsigned long int scoreMatch = 0;
-    update_score(scoreWin, scoreMatch);
+    mvwprintw(scoreWin, 1, tempw/2 - 2, "Score:");
+    mvwprintw(scoreWin, temph/2 + 1, tempw/2 - 2, "Level:");
+
+    WINDOW *holdWin = create_winbox(LINES/4, COLS/6, LINES/2.5, COLS - COLS/2);
+    getmaxyx(holdWin, temph, tempw);
+    mvwprintw(holdWin, 1, tempw/2 - 2, "Hold");
+    wrefresh(holdWin);
+
+    WINDOW *nextWin = create_winbox(LINES/4, COLS/6, LINES/1.5, COLS - COLS/2);
 
     
     Game currentGame{};
     print_next(nextWin, currentGame.generator);
+    update_info(scoreWin, currentGame.score, currentGame.level);
     timeout(0);  // no wait for getch()
     while(currentGame.continueGame)
     {
@@ -86,10 +89,10 @@ int main()
 				break;
 			case ' ':
 				while(!moveBlock(mainWin, currentGame.currentBlock, 1, 0));
-                if(currentGame.shiftFrame)  // makes sure to avoid spamming of space_key to have infinite time before next piece is drop
+                if(currentGame.lockDelay)  // makes sure to avoid spamming of space_key to have infinite time before next piece is drop
                 {
-                    currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) + milliseconds{500} - currentGame.speedLevel;
-                    currentGame.shiftFrame = false;
+                    currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) + milliseconds{500} - currentGame.fallSpeed;
+                    currentGame.lockDelay = false;
                 }
 				break;
 			case 'z':
@@ -115,7 +118,7 @@ int main()
                     
                     print_next(nextWin, currentGame.generator);
                     currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-                    currentGame.shiftFrame = true;
+                    currentGame.lockDelay = true;
                 }
                 break;
             case 'q':
@@ -123,7 +126,7 @@ int main()
                 print_next(nextWin, currentGame.generator);
                 break;
 		}
-        if(currentGame.continueGame && (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - currentGame.millStart) > currentGame.speedLevel)
+        if(currentGame.continueGame && (duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - currentGame.millStart) > currentGame.fallSpeed)
         {
             if(moveBlock(mainWin, currentGame.currentBlock, 1, 0))
             {
@@ -131,21 +134,24 @@ int main()
                     currentGame.continueGame = false;
                 else
                 {
-                    scoreMatch += 100*check_rows(mainWin);
-                    update_score(scoreWin, scoreMatch);
+                    currentGame.score += 100*check_rows(mainWin);
+                    while(500*currentGame.level <= currentGame.score)
+                        ++currentGame.level;
+                    update_info(scoreWin, currentGame.score, currentGame.level);
                     currentGame.currentBlock = get_next(currentGame.generator);
                     print_next(nextWin, currentGame.generator);
+                    currentGame.fallSpeed = milliseconds(static_cast<int>(1000*pow(0.8-(currentGame.level-1)*0.007, currentGame.level-1)));  // formula from official tetris guidline for gravity
                     currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-                    currentGame.shiftFrame = true;
+                    currentGame.lockDelay = true;
                     currentGame.holdTurn = true;
                 }
             }
             else if(moveBlock(mainWin, currentGame.currentBlock, 1, 0, true))  // simulate movement to check if the next down translation will also be impossible
-                currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) + milliseconds{500} - currentGame.speedLevel;
+                currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) + milliseconds{500} - currentGame.fallSpeed;
             else
             {
                 currentGame.millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-                currentGame.shiftFrame = true;
+                currentGame.lockDelay = true;
             }
         }
     }

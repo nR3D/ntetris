@@ -55,25 +55,29 @@ tetrimino *get_next(BRG *generator)
 struct Game
 {
     BRG *generator;
+    unsigned long int score;
+    short level;
     bool continueGame;  // match ends when continueGame is false
-    bool shiftFrame;  /* give more time when a tetrimino touched the end of a column,
+    bool lockDelay;  /* give more time when a tetrimino touched the end of a column,
                        * if true that extra time can be used again */
     bool holdTurn;  // indicates if a tetrimino can be hold in this turn
     tetrimino *currentBlock;
     char holdCh;  // char shape of the holded tetrimino
     milliseconds millStart;  // millsec from which start to count the speed of fall
-    milliseconds speedLevel;  // speed of fall
+    milliseconds fallSpeed;  // speed of fall
 
     Game()
     {
         generator = new BRG();
+        score = 0;
+        level = 1;
         continueGame = true;
-        shiftFrame = true;
+        lockDelay = true;
         holdTurn = true;
         holdCh = '\0';
         currentBlock = get_next(generator);
         millStart = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-        speedLevel = milliseconds(500);
+        fallSpeed = milliseconds(1000);
     }
 
 };
@@ -111,19 +115,6 @@ int check_rows(WINDOW *win)
         }
     }
     return rowsRemoved;
-}
-
-void update_score(WINDOW *win, unsigned long int score)
-{
-    int len_score = 0;
-    while(score/pow(10,len_score) > 1)
-        len_score++;
-    if(len_score%2)
-        len_score++;
-    int h, w;
-    getmaxyx(win, h, w);
-    mvwprintw(win, h/2, w/2 - len_score/2, "%d", score);
-    wrefresh(win);
 }
 
 void count_down(WINDOW *win)
@@ -183,12 +174,31 @@ bool pause_game(WINDOW *win)
     return arrow_position;
 }
 
+void update_info(WINDOW *win, unsigned long int score, short level)
+{
+    int len_score = 1;
+    while(score/pow(10,len_score) > 1)
+        len_score++;
+    if(!len_score%2)
+        len_score++;
+    int h, w;
+    getmaxyx(win, h, w);
+    wmove(win, h/3, 0);
+    wclrtoeol(win);  // remove previous score
+    mvwprintw(win, h/3, w/2 - len_score/2, "%d", score);
+    wmove(win, h/2 + 2, 0);
+    wclrtoeol(win);  // remove previous level
+    mvwprintw(win, h/2 + 2, w/2, "%d", level);
+    wrefresh(win);
+}
+
 void print_next(WINDOW *win, BRG *generator)
 {
     // The next tetrimino in *generator will be printed at the centre of *win
     int h, w;
     getmaxyx(win, h, w);
-    tetrimino *next_tetr = new tetrimino(generator->bag[generator->lenBag-1]->shape, h/2, w/2 - 2);
+    tetrimino *next_tetr = new tetrimino(generator->bag[generator->lenBag-1]->shape, h/2, w/2);
+    next_tetr->xPos -= next_tetr->pivot;
 
     wmove(win, 1, 0);
     wclrtobot(win);  // erase previous tetrimino
@@ -204,9 +214,10 @@ void print_hold(WINDOW *win, char hold_ch)
 {
     int h, w;
     getmaxyx(win, h, w);
-    tetrimino *hold_tetr = new tetrimino(hold_ch, h/2, w/2 - 2);
+    tetrimino *hold_tetr = new tetrimino(hold_ch, h/2, w/2);
+    hold_tetr->xPos -= hold_tetr->pivot;
 
-    wmove(win, 1, 0);
+    wmove(win, 2, 0);
     wclrtobot(win);  // erase previous tetrimino
 
     drawBlock(win, hold_tetr);
