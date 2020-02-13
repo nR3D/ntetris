@@ -1,3 +1,3 @@
 # nTetris
 
-ncurses implementation of Tetris
+`ncurses` implementation of Tetris.
