@@ -34,7 +34,7 @@ struct Game
 	bool continueGame; // match ends if false
 	bool lockDelay; // more time can be given when a tetrimino touches the end of a column
 	bool holdTurn; // can hold a tetrimino
-	char holdCh; //char shape of the holded tetrimino
+	char holdCh; // char shape of the held tetrimino
 	milliseconds millStart;
 	milliseconds fallSpeed;
 	Game();
